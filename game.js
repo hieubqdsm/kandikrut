@@ -1,6 +1,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreContainer = document.getElementById('scoreContainer');
+const currentPlayerSpan = document.getElementById('currentPlayer');
+const playerNameInput = document.getElementById('playerName');
 
 // Game constants
 const GRID_SIZE = 8;
@@ -25,6 +27,69 @@ let isDragging = false;
 let dragStart = null;
 let dragOffset = { x: 0, y: 0 };
 let animationFrame = null;
+let isMultiPlayer = false;
+let currentPlayer = 1;
+let player1Score = 0;
+let player2Score = 0;
+let player1Name = "Player 1";
+let player2Name = "Player 2";
+
+// Screen management
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
+    document.getElementById(screenId).classList.add('active');
+}
+
+function showMenu() {
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+    }
+    showScreen('menuScreen');
+}
+
+function startSinglePlayer() {
+    isMultiPlayer = false;
+    player1Name = playerNameInput.value || "Player 1";
+    currentPlayerSpan.textContent = player1Name;
+    resetGame();
+    showScreen('gameScreen');
+    resizeCanvas();
+}
+
+function startMultiPlayer() {
+    isMultiPlayer = true;
+    player1Name = playerNameInput.value || "Player 1";
+    player2Name = "Player 2";
+    currentPlayer = 1;
+    currentPlayerSpan.textContent = player1Name;
+    resetGame();
+    showScreen('gameScreen');
+    resizeCanvas();
+}
+
+function switchPlayer() {
+    if (isMultiPlayer) {
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        currentPlayerSpan.textContent = currentPlayer === 1 ? player1Name : player2Name;
+        if (currentPlayer === 1) {
+            player2Score = score;
+        } else {
+            player1Score = score;
+        }
+        score = currentPlayer === 1 ? player1Score : player2Score;
+        updateScore();
+    }
+}
+
+function resetGame() {
+    score = 0;
+    player1Score = 0;
+    player2Score = 0;
+    updateScore();
+    initGrid();
+}
 
 // Resize canvas based on window size
 function resizeCanvas() {
@@ -54,7 +119,11 @@ function initGrid() {
 
 // Update score display
 function updateScore() {
-    scoreContainer.textContent = `Score: ${score}`;
+    if (isMultiPlayer) {
+        scoreContainer.textContent = `${player1Name}: ${player1Score} | ${player2Name}: ${player2Score}`;
+    } else {
+        scoreContainer.textContent = `Score: ${score}`;
+    }
 }
 
 // Draw a 3D candy
@@ -260,6 +329,8 @@ function handleMove(event) {
     }
 }
 
+// Modify handleEnd to include multiplayer logic
+const originalHandleEnd = handleEnd;
 function handleEnd(event) {
     event.preventDefault();
     if (isDragging && selectedCandy) {
@@ -300,6 +371,9 @@ function handleEnd(event) {
                         fillEmptySpaces();
                     }
                     updateScore();
+                    if (isMultiPlayer) {
+                        switchPlayer();
+                    }
                 }
             }
         }
@@ -313,8 +387,9 @@ function handleEnd(event) {
 
 // Initialize and start the game
 function init() {
-    initGrid();
-    resizeCanvas();
+    // Remove the immediate game start
+    // initGrid();
+    // resizeCanvas();
     
     // Mouse events
     canvas.addEventListener('mousedown', handleStart);
@@ -330,8 +405,6 @@ function init() {
     
     // Window resize event
     window.addEventListener('resize', resizeCanvas);
-    
-    drawGrid();
 }
 
 init(); 
