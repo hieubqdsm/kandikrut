@@ -1,10 +1,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const scoreContainer = document.getElementById('scoreContainer');
 
 // Game constants
 const GRID_SIZE = 8;
-const CANDY_SIZE = 60;
-const PADDING = 20; // Padding around the grid
+let CANDY_SIZE;
+let PADDING;
+
 const CANDY_TYPES = 6;
 const COLORS = [
     { main: '#FF0000', light: '#FF6666', dark: '#CC0000' }, // Red
@@ -24,6 +26,21 @@ let dragStart = null;
 let dragOffset = { x: 0, y: 0 };
 let animationFrame = null;
 
+// Resize canvas based on window size
+function resizeCanvas() {
+    const size = Math.min(
+        window.innerWidth,
+        window.innerHeight - scoreContainer.offsetHeight - 40
+    );
+    canvas.width = size;
+    canvas.height = size;
+    
+    CANDY_SIZE = Math.floor(size / (GRID_SIZE + 0.5));
+    PADDING = Math.floor((size - (GRID_SIZE * CANDY_SIZE)) / 2);
+    
+    drawGrid();
+}
+
 // Initialize the game grid
 function initGrid() {
     grid = [];
@@ -33,6 +50,11 @@ function initGrid() {
             grid[i][j] = Math.floor(Math.random() * CANDY_TYPES);
         }
     }
+}
+
+// Update score display
+function updateScore() {
+    scoreContainer.textContent = `Score: ${score}`;
 }
 
 // Draw a 3D candy
@@ -83,13 +105,6 @@ function drawCandy(x, y, type, isSelected = false) {
     ctx.fill();
 }
 
-// Draw score
-function drawScore() {
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(`Score: ${score}`, PADDING, canvas.height - PADDING/2);
-}
-
 // Draw the game grid
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -118,7 +133,6 @@ function drawGrid() {
         drawCandy(x, y, grid[selectedCandy.row][selectedCandy.col], true);
     }
     
-    drawScore();
     animationFrame = requestAnimationFrame(drawGrid);
 }
 
@@ -211,11 +225,15 @@ function fillEmptySpaces() {
     }
 }
 
-// Handle mouse events
-function handleMouseDown(event) {
+// Handle touch/mouse events
+function handleStart(event) {
+    event.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left - PADDING;
-    const y = event.clientY - rect.top - PADDING;
+    const clientX = event.type.includes('touch') ? event.touches[0].clientX : event.clientX;
+    const clientY = event.type.includes('touch') ? event.touches[0].clientY : event.clientY;
+    
+    const x = clientX - rect.left - PADDING;
+    const y = clientY - rect.top - PADDING;
     
     const col = Math.floor(x / CANDY_SIZE);
     const row = Math.floor(y / CANDY_SIZE);
@@ -228,24 +246,33 @@ function handleMouseDown(event) {
     }
 }
 
-function handleMouseMove(event) {
+function handleMove(event) {
+    event.preventDefault();
     if (isDragging && selectedCandy) {
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        const clientX = event.type.includes('touch') ? event.touches[0].clientX : event.clientX;
+        const clientY = event.type.includes('touch') ? event.touches[0].clientY : event.clientY;
         
         dragOffset = {
-            x: x - (selectedCandy.col * CANDY_SIZE + PADDING + CANDY_SIZE/2),
-            y: y - (selectedCandy.row * CANDY_SIZE + PADDING + CANDY_SIZE/2)
+            x: clientX - rect.left - (selectedCandy.col * CANDY_SIZE + PADDING + CANDY_SIZE/2),
+            y: clientY - rect.top - (selectedCandy.row * CANDY_SIZE + PADDING + CANDY_SIZE/2)
         };
     }
 }
 
-function handleMouseUp(event) {
+function handleEnd(event) {
+    event.preventDefault();
     if (isDragging && selectedCandy) {
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left - PADDING;
-        const y = event.clientY - rect.top - PADDING;
+        const clientX = event.type.includes('touch') ? 
+            (event.changedTouches[0] ? event.changedTouches[0].clientX : event.touches[0].clientX) : 
+            event.clientX;
+        const clientY = event.type.includes('touch') ? 
+            (event.changedTouches[0] ? event.changedTouches[0].clientY : event.touches[0].clientY) : 
+            event.clientY;
+        
+        const x = clientX - rect.left - PADDING;
+        const y = clientY - rect.top - PADDING;
         
         const col = Math.floor(x / CANDY_SIZE);
         const row = Math.floor(y / CANDY_SIZE);
@@ -272,6 +299,7 @@ function handleMouseUp(event) {
                     while (removeMatches()) {
                         fillEmptySpaces();
                     }
+                    updateScore();
                 }
             }
         }
@@ -286,10 +314,23 @@ function handleMouseUp(event) {
 // Initialize and start the game
 function init() {
     initGrid();
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('mouseleave', handleMouseUp);
+    resizeCanvas();
+    
+    // Mouse events
+    canvas.addEventListener('mousedown', handleStart);
+    canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('mouseup', handleEnd);
+    canvas.addEventListener('mouseleave', handleEnd);
+    
+    // Touch events
+    canvas.addEventListener('touchstart', handleStart, { passive: false });
+    canvas.addEventListener('touchmove', handleMove, { passive: false });
+    canvas.addEventListener('touchend', handleEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleEnd, { passive: false });
+    
+    // Window resize event
+    window.addEventListener('resize', resizeCanvas);
+    
     drawGrid();
 }
 
