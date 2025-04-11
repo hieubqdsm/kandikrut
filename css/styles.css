@@ -1,0 +1,227 @@
+:root {
+    --primary: #005670;
+    --primary-light: #006d8f;
+    --primary-dark: #004057;
+    --accent: #00E5FF;
+    --text: #FFFFFF;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    touch-action: none;
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+    color: var(--text);
+}
+
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+    position: relative;
+}
+
+.screen.active {
+    display: flex;
+}
+
+#menuScreen {
+    text-align: center;
+}
+
+.menu-title {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--text);
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.5),
+                 0 0 40px rgba(0, 229, 255, 0.3);
+}
+
+.menu-logo {
+    width: 300px;
+    height: auto;
+    margin-bottom: 40px;
+}
+
+.player-info {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    width: 280px;
+    position: relative;
+}
+
+.player-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text);
+    margin: 0;
+    text-align: center;
+}
+
+.edit-button {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--primary-dark);
+    border: none;
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.edit-button:hover,
+.edit-button:active {
+    background: var(--text);
+    transform: translateX(-50%) translateY(-2px);
+}
+
+.name-edit {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-field {
+    width: calc(100% - 40px);
+    padding: 12px 20px;
+    border: 2px solid var(--accent);
+    border-radius: 15px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    outline: none;
+    backdrop-filter: blur(10px);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.save-button {
+    background: var(--accent);
+    color: var(--primary-dark);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 15px;
+    font-size: 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    margin-top: 10px;
+}
+
+.save-button:hover,
+.save-button:active {
+    background: var(--text);
+}
+
+.button {
+    background: linear-gradient(145deg, var(--accent), var(--primary-light));
+    color: var(--text);
+    border: none;
+    padding: 15px 30px;
+    margin: 10px;
+    border-radius: 15px;
+    font-size: 18px;
+    cursor: pointer;
+    width: 280px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.button:hover::before {
+    left: 100%;
+}
+
+.button.disabled {
+    background: linear-gradient(145deg, #4a4a4a, #2d2d2d);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#gameScreen {
+    background: var(--primary-dark);
+}
+
+#gameHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 20px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+}
+
+#backButton {
+    background: var(--accent);
+    color: var(--primary-dark);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#scoreContainer {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text);
+}
+
+#playerInfo {
+    font-size: 18px;
+    color: var(--text);
+}
+
+canvas {
+    border: 2px solid var(--accent);
+    border-radius: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 30px rgba(0, 229, 255, 0.2);
+    max-width: 100vmin;
+    max-height: 100vmin;
+    backdrop-filter: blur(10px);
+}
