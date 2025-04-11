@@ -48,6 +48,63 @@ let player2Score = 0;
 let player1Name = "Player 1";
 let player2Name = "Player 2";
 
+// Animation state
+let swapAnimation = null;
+let dropAnimation = null;
+const ANIMATION_DURATION = 300; // milliseconds
+const EASING_FUNCTION = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // Quadratic easing
+
+// Track animated candies
+let animatedCandies = [];
+
+// Animation helper functions
+function animateSwap(candy1, candy2, onComplete) {
+    const startTime = performance.now();
+    const startPos1 = { x: candy1.col * CANDY_SIZE + PADDING, y: candy1.row * CANDY_SIZE + PADDING };
+    const startPos2 = { x: candy2.col * CANDY_SIZE + PADDING, y: candy2.row * CANDY_SIZE + PADDING };
+    
+    // Add candies to animation tracking
+    animatedCandies = [
+        { ...candy1, type: grid[candy1.row][candy1.col] },
+        { ...candy2, type: grid[candy2.row][candy2.col] }
+    ];
+    
+    function updateAnimation(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+        const easedProgress = EASING_FUNCTION(progress);
+        
+        if (progress < 1) {
+            swapAnimation = requestAnimationFrame(updateAnimation);
+            
+            // Calculate current positions
+            const currentPos1 = {
+                x: startPos1.x + (startPos2.x - startPos1.x) * easedProgress,
+                y: startPos1.y + (startPos2.y - startPos1.y) * easedProgress
+            };
+            
+            const currentPos2 = {
+                x: startPos2.x + (startPos1.x - startPos2.x) * easedProgress,
+                y: startPos2.y + (startPos1.y - startPos2.y) * easedProgress
+            };
+            
+            // Draw candies at current positions
+            ctx.save();
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 20;
+            ctx.drawImage(candyImages[animatedCandies[0].type], currentPos1.x, currentPos1.y, CANDY_SIZE, CANDY_SIZE);
+            ctx.drawImage(candyImages[animatedCandies[1].type], currentPos2.x, currentPos2.y, CANDY_SIZE, CANDY_SIZE);
+            ctx.restore();
+        } else {
+            swapAnimation = null;
+            animatedCandies = []; // Clear animation tracking
+            if (onComplete) onComplete();
+        }
+    }
+    
+    updateAnimation(startTime);
+}
+
 // Name management
 function loadSavedName() {
     const savedName = localStorage.getItem('playerName');
@@ -204,7 +261,7 @@ function drawCandy(row, col, type) {
     ctx.shadowBlur = 0;
 }
 
-// Modify drawGrid function to use modern background
+// Modify drawGrid function to handle animations
 function drawGrid() {
     // Clear canvas with modern gradient background
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -226,6 +283,13 @@ function drawGrid() {
             ctx.fillRect(x, y, CANDY_SIZE, CANDY_SIZE);
             ctx.shadowBlur = 0;
             
+            // Skip drawing if candy is being animated
+            const isAnimated = animatedCandies.some(candy => candy.row === i && candy.col === j);
+            if (isAnimated) {
+                continue;
+            }
+            
+            // Skip drawing if candy is being dragged
             if (isDragging && selectedCandy && selectedCandy.row === i && selectedCandy.col === j) {
                 continue;
             }
@@ -234,15 +298,31 @@ function drawGrid() {
         }
     }
     
-    // Draw dragged candy with enhanced glow
+    // Draw dragged candy with enhanced glow and scale
     if (isDragging && selectedCandy) {
         const x = dragStart.x + dragOffset.x;
         const y = dragStart.y + dragOffset.y;
+        
+        ctx.save();
         ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
         ctx.shadowBlur = 20;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-        drawCandy(selectedCandy.row, selectedCandy.col, grid[selectedCandy.row][selectedCandy.col]);
+        
+        // Add scale effect while dragging
+        const scale = 1.1;
+        const scaledSize = CANDY_SIZE * scale;
+        const offset = (scaledSize - CANDY_SIZE) / 2;
+        
+        ctx.drawImage(
+            candyImages[grid[selectedCandy.row][selectedCandy.col]],
+            x - offset,
+            y - offset,
+            scaledSize,
+            scaledSize
+        );
+        
+        ctx.restore();
     }
     
     animationFrame = requestAnimationFrame(drawGrid);
@@ -372,8 +452,7 @@ function handleMove(event) {
     }
 }
 
-// Modify handleEnd to include multiplayer logic
-const originalHandleEnd = handleEnd;
+// Modify handleEnd to include animation
 function handleEnd(event) {
     event.preventDefault();
     if (isDragging && selectedCandy) {
@@ -396,28 +475,36 @@ function handleEnd(event) {
             const colDiff = Math.abs(selectedCandy.col - col);
             
             if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
-                // Swap candies
-                const temp = grid[selectedCandy.row][selectedCandy.col];
-                grid[selectedCandy.row][selectedCandy.col] = grid[row][col];
-                grid[row][col] = temp;
+                // Animate the swap
+                const candy1 = { row: selectedCandy.row, col: selectedCandy.col };
+                const candy2 = { row, col };
                 
-                // Check for matches
-                if (!removeMatches()) {
-                    // If no matches, swap back
-                    const temp = grid[selectedCandy.row][selectedCandy.col];
-                    grid[selectedCandy.row][selectedCandy.col] = grid[row][col];
-                    grid[row][col] = temp;
-                } else {
-                    // Fill empty spaces and check for new matches
-                    fillEmptySpaces();
-                    while (removeMatches()) {
+                animateSwap(candy1, candy2, () => {
+                    // Swap candies in grid after animation
+                    const temp = grid[candy1.row][candy1.col];
+                    grid[candy1.row][candy1.col] = grid[candy2.row][candy2.col];
+                    grid[candy2.row][candy2.col] = temp;
+                    
+                    // Check for matches
+                    if (!removeMatches()) {
+                        // If no matches, animate swap back
+                        animateSwap(candy2, candy1, () => {
+                            const temp = grid[candy1.row][candy1.col];
+                            grid[candy1.row][candy1.col] = grid[candy2.row][candy2.col];
+                            grid[candy2.row][candy2.col] = temp;
+                        });
+                    } else {
+                        // Fill empty spaces and check for new matches
                         fillEmptySpaces();
+                        while (removeMatches()) {
+                            fillEmptySpaces();
+                        }
+                        updateScore();
+                        if (isMultiPlayer) {
+                            switchPlayer();
+                        }
                     }
-                    updateScore();
-                    if (isMultiPlayer) {
-                        switchPlayer();
-                    }
-                }
+                });
             }
         }
     }
