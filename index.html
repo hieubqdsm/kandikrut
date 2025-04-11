@@ -87,9 +87,12 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
-        .edit-button:hover {
+        .edit-button:hover,
+        .edit-button:active {
             background: var(--text);
             transform: translateX(-50%) translateY(-2px);
         }
@@ -97,10 +100,12 @@
         .name-edit {
             display: none;
             width: 100%;
+            flex-direction: column;
+            gap: 10px;
         }
         
         .input-field {
-            width: 100%;
+            width: calc(100% - 40px);
             padding: 12px 20px;
             border: 2px solid var(--accent);
             border-radius: 15px;
@@ -109,10 +114,26 @@
             color: var(--text);
             outline: none;
             backdrop-filter: blur(10px);
+            -webkit-appearance: none;
+            appearance: none;
         }
         
-        .input-field::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+        .save-button {
+            background: var(--accent);
+            color: var(--primary-dark);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            margin-top: 10px;
+        }
+        
+        .save-button:hover,
+        .save-button:active {
+            background: var(--text);
         }
         
         .button {
@@ -213,7 +234,7 @@
         <div class="player-info">
             <div class="name-edit">
                 <input type="text" id="playerName" class="input-field" placeholder="Enter your name" value="Player 1">
-                <button class="icon-button" onclick="saveName()">✓</button>
+                <button class="save-button" onclick="saveName()">Save Name</button>
             </div>
             <div class="name-display">
                 <h2 class="player-name" id="playerNameDisplay"></h2>

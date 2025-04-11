@@ -46,7 +46,10 @@ function loadSavedName() {
         playerNameDisplay.textContent = savedName;
         showNameDisplay();
     } else {
-        showNameEdit();
+        player1Name = "Player";
+        playerNameInput.value = "Player";
+        playerNameDisplay.textContent = "Player";
+        showNameDisplay();
     }
 }
 
@@ -442,6 +445,13 @@ function init() {
     canvas.addEventListener('touchmove', handleMove, { passive: false });
     canvas.addEventListener('touchend', handleEnd, { passive: false });
     canvas.addEventListener('touchcancel', handleEnd, { passive: false });
+    
+    // Add touch event for edit button
+    const editButton = document.querySelector('.edit-button');
+    editButton.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        editName();
+    }, { passive: false });
     
     // Window resize event
     window.addEventListener('resize', resizeCanvas);
