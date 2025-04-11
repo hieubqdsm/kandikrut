@@ -5,12 +5,23 @@ const ctx = canvas.getContext('2d');
 const GRID_SIZE = 8;
 const CANDY_SIZE = 60;
 const CANDY_TYPES = 6;
-const COLORS = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+const COLORS = [
+    { main: '#FF0000', light: '#FF6666', dark: '#CC0000' }, // Red
+    { main: '#00FF00', light: '#66FF66', dark: '#00CC00' }, // Green
+    { main: '#0000FF', light: '#6666FF', dark: '#0000CC' }, // Blue
+    { main: '#FFFF00', light: '#FFFF66', dark: '#CCCC00' }, // Yellow
+    { main: '#FF00FF', light: '#FF66FF', dark: '#CC00CC' }, // Purple
+    { main: '#00FFFF', light: '#66FFFF', dark: '#00CCCC' }  // Cyan
+];
 
 // Game state
 let grid = [];
 let selectedCandy = null;
 let score = 0;
+let isDragging = false;
+let dragStart = null;
+let dragOffset = { x: 0, y: 0 };
+let animationFrame = null;
 
 // Initialize the game grid
 function initGrid() {
@@ -23,6 +34,61 @@ function initGrid() {
     }
 }
 
+// Draw a 3D candy
+function drawCandy(x, y, type, isSelected = false) {
+    const color = COLORS[type];
+    const centerX = x + CANDY_SIZE/2;
+    const centerY = y + CANDY_SIZE/2;
+    const radius = CANDY_SIZE/2 - 4;
+    
+    // Draw outer glow for selected candy
+    if (isSelected) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius + 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fill();
+    }
+    
+    // Draw candy base
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color.main;
+    ctx.fill();
+    
+    // Draw border with gradient
+    const gradient = ctx.createRadialGradient(
+        centerX - radius/3, centerY - radius/3, 0,
+        centerX, centerY, radius
+    );
+    gradient.addColorStop(0, color.light);
+    gradient.addColorStop(1, color.dark);
+    
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = gradient;
+    ctx.stroke();
+    
+    // Draw highlight (top-left)
+    ctx.beginPath();
+    ctx.arc(centerX - radius/3, centerY - radius/3, radius/4, 0, Math.PI * 2);
+    ctx.fillStyle = color.light;
+    ctx.fill();
+    
+    // Draw shadow (bottom-right)
+    ctx.beginPath();
+    ctx.arc(centerX + radius/3, centerY + radius/3, radius/4, 0, Math.PI * 2);
+    ctx.fillStyle = color.dark;
+    ctx.fill();
+}
+
+// Draw score
+function drawScore() {
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`Score: ${score}`, 10, canvas.height - 10);
+}
+
 // Draw the game grid
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -32,59 +98,88 @@ function drawGrid() {
             const x = j * CANDY_SIZE;
             const y = i * CANDY_SIZE;
             
-            // Draw candy
-            ctx.fillStyle = COLORS[grid[i][j]];
-            ctx.fillRect(x, y, CANDY_SIZE - 2, CANDY_SIZE - 2);
-            
-            // Draw border
-            ctx.strokeStyle = '#000';
-            ctx.strokeRect(x, y, CANDY_SIZE - 2, CANDY_SIZE - 2);
-            
-            // Highlight selected candy
-            if (selectedCandy && selectedCandy.row === i && selectedCandy.col === j) {
-                ctx.strokeStyle = '#FFF';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(x, y, CANDY_SIZE - 2, CANDY_SIZE - 2);
-                ctx.lineWidth = 1;
+            if (isDragging && selectedCandy && selectedCandy.row === i && selectedCandy.col === j) {
+                continue;
             }
+            
+            drawCandy(x, y, grid[i][j], selectedCandy && selectedCandy.row === i && selectedCandy.col === j);
         }
+    }
+    
+    // Draw dragged candy
+    if (isDragging && selectedCandy) {
+        const x = dragStart.x + dragOffset.x;
+        const y = dragStart.y + dragOffset.y;
+        drawCandy(x, y, grid[selectedCandy.row][selectedCandy.col], true);
+    }
+    
+    drawScore();
+    animationFrame = requestAnimationFrame(drawGrid);
+}
+
+// Calculate score based on match length
+function calculateMatchScore(matchLength) {
+    switch(matchLength) {
+        case 3: return 3;
+        case 4: return 5;
+        case 5: return 8;
+        default: return matchLength > 5 ? 10 : 0;
     }
 }
 
 // Check for matches
 function checkMatches() {
-    let matches = [];
+    let matches = new Set();
     
     // Check horizontal matches
     for (let i = 0; i < GRID_SIZE; i++) {
-        for (let j = 0; j < GRID_SIZE - 2; j++) {
-            if (grid[i][j] === grid[i][j + 1] && grid[i][j] === grid[i][j + 2]) {
-                matches.push({row: i, col: j});
-                matches.push({row: i, col: j + 1});
-                matches.push({row: i, col: j + 2});
+        let matchLength = 1;
+        let startCol = 0;
+        
+        for (let j = 1; j <= GRID_SIZE; j++) {
+            if (j < GRID_SIZE && grid[i][j] === grid[i][j-1]) {
+                matchLength++;
+            } else if (matchLength >= 3) {
+                const points = calculateMatchScore(matchLength);
+                score += points;
+                for (let k = 0; k < matchLength; k++) {
+                    matches.add(JSON.stringify({row: i, col: j-k-1}));
+                }
+                matchLength = 1;
+            } else {
+                matchLength = 1;
             }
         }
     }
     
     // Check vertical matches
-    for (let i = 0; i < GRID_SIZE - 2; i++) {
-        for (let j = 0; j < GRID_SIZE; j++) {
-            if (grid[i][j] === grid[i + 1][j] && grid[i][j] === grid[i + 2][j]) {
-                matches.push({row: i, col: j});
-                matches.push({row: i + 1, col: j});
-                matches.push({row: i + 2, col: j});
+    for (let j = 0; j < GRID_SIZE; j++) {
+        let matchLength = 1;
+        let startRow = 0;
+        
+        for (let i = 1; i <= GRID_SIZE; i++) {
+            if (i < GRID_SIZE && grid[i][j] === grid[i-1][j]) {
+                matchLength++;
+            } else if (matchLength >= 3) {
+                const points = calculateMatchScore(matchLength);
+                score += points;
+                for (let k = 0; k < matchLength; k++) {
+                    matches.add(JSON.stringify({row: i-k-1, col: j}));
+                }
+                matchLength = 1;
+            } else {
+                matchLength = 1;
             }
         }
     }
     
-    return matches;
+    return Array.from(matches).map(m => JSON.parse(m));
 }
 
 // Remove matches and update score
 function removeMatches() {
     const matches = checkMatches();
     if (matches.length > 0) {
-        score += matches.length * 10;
         matches.forEach(match => {
             grid[match.row][match.col] = -1;
         });
@@ -111,8 +206,8 @@ function fillEmptySpaces() {
     }
 }
 
-// Handle candy selection and swapping
-function handleClick(event) {
+// Handle mouse events
+function handleMouseDown(event) {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -120,44 +215,77 @@ function handleClick(event) {
     const col = Math.floor(x / CANDY_SIZE);
     const row = Math.floor(y / CANDY_SIZE);
     
-    if (selectedCandy === null) {
+    if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
         selectedCandy = {row, col};
-    } else {
-        // Check if the selected candies are adjacent
-        const rowDiff = Math.abs(selectedCandy.row - row);
-        const colDiff = Math.abs(selectedCandy.col - col);
+        isDragging = true;
+        dragStart = {x: col * CANDY_SIZE, y: row * CANDY_SIZE};
+        dragOffset = {x: 0, y: 0};
+    }
+}
+
+function handleMouseMove(event) {
+    if (isDragging && selectedCandy) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
         
-        if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
-            // Swap candies
-            const temp = grid[selectedCandy.row][selectedCandy.col];
-            grid[selectedCandy.row][selectedCandy.col] = grid[row][col];
-            grid[row][col] = temp;
+        dragOffset = {
+            x: x - (selectedCandy.col * CANDY_SIZE + CANDY_SIZE/2),
+            y: y - (selectedCandy.row * CANDY_SIZE + CANDY_SIZE/2)
+        };
+    }
+}
+
+function handleMouseUp(event) {
+    if (isDragging && selectedCandy) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        const col = Math.floor(x / CANDY_SIZE);
+        const row = Math.floor(y / CANDY_SIZE);
+        
+        if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+            const rowDiff = Math.abs(selectedCandy.row - row);
+            const colDiff = Math.abs(selectedCandy.col - col);
             
-            // Check for matches
-            if (!removeMatches()) {
-                // If no matches, swap back
+            if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+                // Swap candies
                 const temp = grid[selectedCandy.row][selectedCandy.col];
                 grid[selectedCandy.row][selectedCandy.col] = grid[row][col];
                 grid[row][col] = temp;
-            } else {
-                // Fill empty spaces and check for new matches
-                fillEmptySpaces();
-                while (removeMatches()) {
+                
+                // Check for matches
+                if (!removeMatches()) {
+                    // If no matches, swap back
+                    const temp = grid[selectedCandy.row][selectedCandy.col];
+                    grid[selectedCandy.row][selectedCandy.col] = grid[row][col];
+                    grid[row][col] = temp;
+                } else {
+                    // Fill empty spaces and check for new matches
                     fillEmptySpaces();
+                    while (removeMatches()) {
+                        fillEmptySpaces();
+                    }
                 }
             }
         }
-        selectedCandy = null;
     }
     
-    drawGrid();
+    isDragging = false;
+    selectedCandy = null;
+    dragStart = null;
+    dragOffset = {x: 0, y: 0};
 }
 
 // Initialize and start the game
 function init() {
     initGrid();
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
     drawGrid();
-    canvas.addEventListener('click', handleClick);
 }
 
 init(); 
