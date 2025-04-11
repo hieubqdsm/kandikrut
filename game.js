@@ -4,6 +4,7 @@ const ctx = canvas.getContext('2d');
 // Game constants
 const GRID_SIZE = 8;
 const CANDY_SIZE = 60;
+const PADDING = 20; // Padding around the grid
 const CANDY_TYPES = 6;
 const COLORS = [
     { main: '#FF0000', light: '#FF6666', dark: '#CC0000' }, // Red
@@ -86,17 +87,21 @@ function drawCandy(x, y, type, isSelected = false) {
 function drawScore() {
     ctx.fillStyle = '#000';
     ctx.font = 'bold 24px Arial';
-    ctx.fillText(`Score: ${score}`, 10, canvas.height - 10);
+    ctx.fillText(`Score: ${score}`, PADDING, canvas.height - PADDING/2);
 }
 
 // Draw the game grid
 function drawGrid() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Draw background for the grid
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     for (let i = 0; i < GRID_SIZE; i++) {
         for (let j = 0; j < GRID_SIZE; j++) {
-            const x = j * CANDY_SIZE;
-            const y = i * CANDY_SIZE;
+            const x = j * CANDY_SIZE + PADDING;
+            const y = i * CANDY_SIZE + PADDING;
             
             if (isDragging && selectedCandy && selectedCandy.row === i && selectedCandy.col === j) {
                 continue;
@@ -209,8 +214,8 @@ function fillEmptySpaces() {
 // Handle mouse events
 function handleMouseDown(event) {
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const x = event.clientX - rect.left - PADDING;
+    const y = event.clientY - rect.top - PADDING;
     
     const col = Math.floor(x / CANDY_SIZE);
     const row = Math.floor(y / CANDY_SIZE);
@@ -218,7 +223,7 @@ function handleMouseDown(event) {
     if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
         selectedCandy = {row, col};
         isDragging = true;
-        dragStart = {x: col * CANDY_SIZE, y: row * CANDY_SIZE};
+        dragStart = {x: col * CANDY_SIZE + PADDING, y: row * CANDY_SIZE + PADDING};
         dragOffset = {x: 0, y: 0};
     }
 }
@@ -230,8 +235,8 @@ function handleMouseMove(event) {
         const y = event.clientY - rect.top;
         
         dragOffset = {
-            x: x - (selectedCandy.col * CANDY_SIZE + CANDY_SIZE/2),
-            y: y - (selectedCandy.row * CANDY_SIZE + CANDY_SIZE/2)
+            x: x - (selectedCandy.col * CANDY_SIZE + PADDING + CANDY_SIZE/2),
+            y: y - (selectedCandy.row * CANDY_SIZE + PADDING + CANDY_SIZE/2)
         };
     }
 }
@@ -239,8 +244,8 @@ function handleMouseMove(event) {
 function handleMouseUp(event) {
     if (isDragging && selectedCandy) {
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        const x = event.clientX - rect.left - PADDING;
+        const y = event.clientY - rect.top - PADDING;
         
         const col = Math.floor(x / CANDY_SIZE);
         const row = Math.floor(y / CANDY_SIZE);
