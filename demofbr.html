@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase Demo</title>
+</head>
+<body>
+  <h1>Firebase Realtime Database Demo</h1>
+  
+  <div id="data-container"></div>
+  
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+  
+  <script>
+    const firebaseConfig = {
+      databaseURL: "https://gonline-ai-app-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    
+    // Tham chiếu đến node 'users'
+    const usersRef = database.ref('users');
+    
+    // Lắng nghe thay đổi
+    usersRef.on('value', (snapshot) => {
+      const users = snapshot.val();
+      const container = document.getElementById('data-container');
+      container.innerHTML = '';
+      
+      if (users) {
+        for (const [key, user] of Object.entries(users)) {
+          const userDiv = document.createElement('div');
+          userDiv.innerHTML = `
+            <h3>${user.name || 'No name'}</h3>
+            <p>Age: ${user.age || 'N/A'}</p>
+            <p>Email: ${user.email || 'N/A'}</p>
+            <hr>
+          `;
+          container.appendChild(userDiv);
+        }
+      } else {
+        container.innerHTML = '<p>No users found</p>';
+      }
+    });
+    
+    // Thêm dữ liệu mẫu (có thể xóa sau khi test)
+    function addSampleData() {
+      usersRef.push({
+        name: "Sample User",
+        age: 25,
+        email: "sample@example.com"
+      });
+    }
+    
+    // Gọi hàm này để thêm dữ liệu mẫu
+    // addSampleData();
+  </script>
+</body>
+</html>
