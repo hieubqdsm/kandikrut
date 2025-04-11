@@ -3,6 +3,9 @@ const ctx = canvas.getContext('2d');
 const scoreContainer = document.getElementById('scoreContainer');
 const currentPlayerSpan = document.getElementById('currentPlayer');
 const playerNameInput = document.getElementById('playerName');
+const playerNameDisplay = document.getElementById('playerNameDisplay');
+const nameEditContainer = document.querySelector('.name-edit');
+const nameDisplayContainer = document.querySelector('.name-display');
 
 // Game constants
 const GRID_SIZE = 8;
@@ -33,6 +36,45 @@ let player1Score = 0;
 let player2Score = 0;
 let player1Name = "Player 1";
 let player2Name = "Player 2";
+
+// Name management
+function loadSavedName() {
+    const savedName = localStorage.getItem('playerName');
+    if (savedName) {
+        player1Name = savedName;
+        playerNameInput.value = savedName;
+        playerNameDisplay.textContent = savedName;
+        showNameDisplay();
+    } else {
+        showNameEdit();
+    }
+}
+
+function saveName() {
+    const name = playerNameInput.value.trim();
+    if (name) {
+        player1Name = name;
+        localStorage.setItem('playerName', name);
+        playerNameDisplay.textContent = name;
+        currentPlayerSpan.textContent = name;
+        showNameDisplay();
+    }
+}
+
+function editName() {
+    playerNameInput.value = player1Name;
+    showNameEdit();
+}
+
+function showNameDisplay() {
+    nameEditContainer.style.display = 'none';
+    nameDisplayContainer.style.display = 'flex';
+}
+
+function showNameEdit() {
+    nameEditContainer.style.display = 'flex';
+    nameDisplayContainer.style.display = 'none';
+}
 
 // Screen management
 function showScreen(screenId) {
@@ -387,15 +429,13 @@ function handleEnd(event) {
 
 // Initialize and start the game
 function init() {
-    // Remove the immediate game start
-    // initGrid();
-    // resizeCanvas();
+    loadSavedName();
     
     // Mouse events
-    canvas.addEventListener('mousedown', handleStart);
-    canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('mouseup', handleEnd);
-    canvas.addEventListener('mouseleave', handleEnd);
+    canvas.addEventListener('mousedown', handleStart, { passive: false });
+    canvas.addEventListener('mousemove', handleMove, { passive: false });
+    canvas.addEventListener('mouseup', handleEnd, { passive: false });
+    canvas.addEventListener('mouseleave', handleEnd, { passive: false });
     
     // Touch events
     canvas.addEventListener('touchstart', handleStart, { passive: false });
@@ -405,6 +445,11 @@ function init() {
     
     // Window resize event
     window.addEventListener('resize', resizeCanvas);
+    
+    // Prevent default touch behavior on mobile
+    document.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+    }, { passive: false });
 }
 
 init(); 
