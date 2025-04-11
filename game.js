@@ -22,6 +22,17 @@ const COLORS = [
     { main: '#00FFFF', light: '#66FFFF', dark: '#00CCCC' }  // Cyan
 ];
 
+// Load candy images
+const candyImages = [];
+function loadCandyImages() {
+    const imageNames = ['ruby', 'saphire', 'emerald', 'adventurine', 'mythril', 'diamond'];
+    for (let i = 0; i < CANDY_TYPES; i++) {
+        const img = new Image();
+        img.src = `images/${imageNames[i]}.png`;
+        candyImages.push(img);
+    }
+}
+
 // Game state
 let grid = [];
 let selectedCandy = null;
@@ -171,80 +182,67 @@ function updateScore() {
     }
 }
 
-// Draw a 3D candy
-function drawCandy(x, y, type, isSelected = false) {
-    const color = COLORS[type];
-    const centerX = x + CANDY_SIZE/2;
-    const centerY = y + CANDY_SIZE/2;
-    const radius = CANDY_SIZE/2 - 4;
+// Modify drawCandy function to enhance gem appearance
+function drawCandy(row, col, type) {
+    if (type === -1) return;
     
-    // Draw outer glow for selected candy
-    if (isSelected) {
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius + 3, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.fill();
+    const x = col * CANDY_SIZE + PADDING;
+    const y = row * CANDY_SIZE + PADDING;
+    
+    if (selectedCandy && selectedCandy.row === row && selectedCandy.col === col) {
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
     }
     
-    // Draw candy base
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fillStyle = color.main;
-    ctx.fill();
+    // Draw gem with enhanced glow
+    ctx.drawImage(candyImages[type], x, y, CANDY_SIZE, CANDY_SIZE);
     
-    // Draw border with gradient
-    const gradient = ctx.createRadialGradient(
-        centerX - radius/3, centerY - radius/3, 0,
-        centerX, centerY, radius
-    );
-    gradient.addColorStop(0, color.light);
-    gradient.addColorStop(1, color.dark);
-    
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = gradient;
-    ctx.stroke();
-    
-    // Draw highlight (top-left)
-    ctx.beginPath();
-    ctx.arc(centerX - radius/3, centerY - radius/3, radius/4, 0, Math.PI * 2);
-    ctx.fillStyle = color.light;
-    ctx.fill();
-    
-    // Draw shadow (bottom-right)
-    ctx.beginPath();
-    ctx.arc(centerX + radius/3, centerY + radius/3, radius/4, 0, Math.PI * 2);
-    ctx.fillStyle = color.dark;
-    ctx.fill();
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
 }
 
-// Draw the game grid
+// Modify drawGrid function to use modern background
 function drawGrid() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw background for the grid
-    ctx.fillStyle = '#fff';
+    // Clear canvas with modern gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#1a1a2e');
+    gradient.addColorStop(1, '#16213e');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Draw grid cells with subtle glow
     for (let i = 0; i < GRID_SIZE; i++) {
         for (let j = 0; j < GRID_SIZE; j++) {
             const x = j * CANDY_SIZE + PADDING;
             const y = i * CANDY_SIZE + PADDING;
             
+            // Draw cell background with subtle glow
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.1)';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.fillRect(x, y, CANDY_SIZE, CANDY_SIZE);
+            ctx.shadowBlur = 0;
+            
             if (isDragging && selectedCandy && selectedCandy.row === i && selectedCandy.col === j) {
                 continue;
             }
             
-            drawCandy(x, y, grid[i][j], selectedCandy && selectedCandy.row === i && selectedCandy.col === j);
+            drawCandy(i, j, grid[i][j]);
         }
     }
     
-    // Draw dragged candy
+    // Draw dragged candy with enhanced glow
     if (isDragging && selectedCandy) {
         const x = dragStart.x + dragOffset.x;
         const y = dragStart.y + dragOffset.y;
-        drawCandy(x, y, grid[selectedCandy.row][selectedCandy.col], true);
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        drawCandy(selectedCandy.row, selectedCandy.col, grid[selectedCandy.row][selectedCandy.col]);
     }
     
     animationFrame = requestAnimationFrame(drawGrid);
@@ -432,6 +430,7 @@ function handleEnd(event) {
 
 // Initialize and start the game
 function init() {
+    loadCandyImages();
     loadSavedName();
     
     // Mouse events
