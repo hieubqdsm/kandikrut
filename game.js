@@ -206,15 +206,13 @@ function resetGame() {
 
 // Resize canvas based on window size
 function resizeCanvas() {
-    const size = Math.min(
-        window.innerWidth,
-        window.innerHeight - scoreContainer.offsetHeight - 40
-    );
-    canvas.width = size;
-    canvas.height = size;
+    // Set fixed canvas size
+    canvas.width = 750;
+    canvas.height = 750;
     
-    CANDY_SIZE = Math.floor(size / (GRID_SIZE + 0.5));
-    PADDING = Math.floor((size - (GRID_SIZE * CANDY_SIZE)) / 2);
+    // Calculate candy size and padding based on fixed canvas size
+    CANDY_SIZE = Math.floor(750 / (GRID_SIZE + 0.5));
+    PADDING = Math.floor((750 - (GRID_SIZE * CANDY_SIZE)) / 2);
     
     drawGrid();
 }
